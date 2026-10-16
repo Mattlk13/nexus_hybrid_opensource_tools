@@ -1,6 +1,7 @@
 """NEXUS open-source management tools. No simulated release or notification counts."""
 import asyncio
-from nexus_release_adapters import AdapterError, release_preview, notifications
+from nexus_release_adapters import AdapterError, release_preview
+from nexus_notifications import read_notifications as notifications, manage_thread, rollback_subscription
 import logging
 from typing import Dict
 
@@ -37,6 +38,18 @@ class OpenSourceToolsEngine:
         except AdapterError as exc:
             return {"success": False, "error": str(exc), "unread_count": None,
                     "filtered_count": None}
+
+    async def manage_notification_thread(self, user_id, thread_id, action, repository):
+        try:
+            return await asyncio.to_thread(manage_thread, user_id, thread_id, action, repository)
+        except AdapterError as exc:
+            return {"success": False, "error": str(exc), "state_unconfirmed": True}
+
+    async def rollback_notification_subscription(self, user_id, receipt):
+        try:
+            return await asyncio.to_thread(rollback_subscription, user_id, receipt)
+        except AdapterError as exc:
+            return {"success": False, "error": str(exc), "state_unconfirmed": True}
 
     def get_capabilities(self) -> Dict:
         return {"name": "Open Source Tools Hybrid", "version": "1.0.1",
