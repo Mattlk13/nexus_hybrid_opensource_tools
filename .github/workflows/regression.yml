@@ -29,4 +29,5 @@ jobs:
       - name: Isolated semantic-release preview; verify no new tags
         run: npm test
       - name: Dependency security gate
+        if: ${{ !cancelled() }}
         run: npm audit --audit-level=high

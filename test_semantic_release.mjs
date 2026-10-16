@@ -15,7 +15,7 @@ try {
  writeFileSync(join(work,'feature'),'feature');git(['add','.'],work);git(['commit','-m','feat: isolated release preview'],work);git(['push','origin','main','--tags'],work);git(['--git-dir',remote,'symbolic-ref','HEAD','refs/heads/main']);
  const result=await semanticRelease({branches:['main'],repositoryUrl:pathToFileURL(remote).href,dryRun:true,ci:false,
    extends:[],plugins:['@semantic-release/commit-analyzer','@semantic-release/release-notes-generator']},
-   {cwd:work,env:{...process.env,GITHUB_TOKEN:'',GH_TOKEN:'',NPM_TOKEN:''}});
+   {cwd:work,env:Object.fromEntries(['PATH','HOME','SystemRoot','TEMP','TMP'].filter(key=>process.env[key]).map(key=>[key,process.env[key]]))});
  assert.equal(result.nextRelease.version,'1.1.0');
  assert.equal(git(['tag','--list'],work),'v1.0.0');
  assert.equal(git(['--git-dir',remote,'tag','--list']),'v1.0.0');
