@@ -1,4 +1,6 @@
 """NEXUS open-source management tools. No simulated release or notification counts."""
+import asyncio
+from nexus_release_adapters import AdapterError, release_preview, notifications
 import logging
 from typing import Dict
 
@@ -21,16 +23,20 @@ class OpenSourceToolsEngine:
     async def automate_release(self, repo: str) -> Dict:
         if not isinstance(repo, str) or not repo.strip():
             return {"success": False, "error": "repository_required"}
-        return {"success": False, "repo": repo,
-                "error": "semantic_release_runner_not_configured",
-                "version_released": None, "changelog_generated": False}
+        try:
+            return await asyncio.to_thread(release_preview, repo)
+        except AdapterError as exc:
+            return {"success": False, "error": str(exc), "version_released": None,
+                    "changelog_generated": False}
 
     async def manage_notifications(self, user_id: str) -> Dict:
         if not isinstance(user_id, str) or not user_id.strip():
             return {"success": False, "error": "user_id_required"}
-        return {"success": False, "user_id": user_id,
-                "error": "octobox_adapter_not_configured",
-                "unread_count": None, "filtered_count": None}
+        try:
+            return await asyncio.to_thread(notifications, user_id)
+        except AdapterError as exc:
+            return {"success": False, "error": str(exc), "unread_count": None,
+                    "filtered_count": None}
 
     def get_capabilities(self) -> Dict:
         return {"name": "Open Source Tools Hybrid", "version": "1.0.1",

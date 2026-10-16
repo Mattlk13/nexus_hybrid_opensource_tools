@@ -1,0 +1,11 @@
+{
+  "name": "nexus-release-verification",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node test_semantic_release.mjs"
+  },
+  "dependencies": {
+    "semantic-release": "25.0.9"
+  }
+}
