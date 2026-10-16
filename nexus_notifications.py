@@ -83,9 +83,21 @@ def manage_thread(user,thread_id,action,repository):
     _,prior,_=api(path+'/subscription')
     if not isinstance(prior,dict) or not isinstance(prior.get('subscribed'),bool) or not isinstance(prior.get('ignored'),bool): raise AdapterError('subscription_state_unconfirmed')
     target={'subscribed':action=='subscribe','ignored':False}
-    _,_,_=api(path+'/subscription','PUT',target)
-    _,after,_=api(path+'/subscription')
-    if not isinstance(after,dict) or any(after.get(key)!=value for key,value in target.items()): raise AdapterError('notification_write_unconfirmed')
+    try:
+        api(path+'/subscription','PUT',target)
+        _,after,_=api(path+'/subscription')
+        if not isinstance(after,dict) or any(after.get(key)!=value for key,value in target.items()):
+            raise AdapterError('notification_write_unconfirmed')
+    except AdapterError as original:
+        restore={key:prior[key] for key in ('subscribed','ignored')}
+        try:
+            api(path+'/subscription','PUT',restore)
+            _,restored,_=api(path+'/subscription')
+            if not isinstance(restored,dict) or any(restored.get(k)!=v for k,v in restore.items()):
+                raise AdapterError('rollback_readback_mismatch')
+        except AdapterError as rollback_error:
+            raise AdapterError('notification_write_failed_rollback_unconfirmed') from rollback_error
+        raise AdapterError('notification_write_failed_rolled_back') from original
     return {'success':True,'verified':True,'thread_id':thread_id,'user_id':login,
             'rollback':{'thread_id':thread_id,'repository':repository,'subscribed':prior['subscribed'],'ignored':prior['ignored']}}
 

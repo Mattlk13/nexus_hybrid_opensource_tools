@@ -31,3 +31,8 @@ class NotificationTests(unittest.TestCase):
         thread={'id':'12','repository':{'full_name':'fixture/test'},'unread':True}
         with patch('nexus_notifications.api',side_effect=[(200,{'login':'fixture'},''),(200,thread,''),(205,None,''),(200,thread,'')]):
             with self.assertRaisesRegex(AdapterError,'write_unconfirmed'): manage_thread('fixture','12','mark_read','fixture/test')
+    def test_subscription_timeout_restores_prior_state(self):
+        thread={'id':'12','repository':{'full_name':'fixture/test'}};prior={'subscribed':False,'ignored':False}
+        with patch('nexus_notifications.api',side_effect=[(200,{'login':'fixture'},''),(200,thread,''),(200,prior,''),AdapterError('remote_timeout_outcome_unknown'),(200,prior,''),(200,prior,'')]):
+            with self.assertRaisesRegex(AdapterError,'write_failed_rolled_back'):
+                manage_thread('fixture','12','subscribe','fixture/test')

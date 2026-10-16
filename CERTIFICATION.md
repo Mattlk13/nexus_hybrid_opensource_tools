@@ -1,3 +1,18 @@
+# NEXUS resumed certification — 2026-10-16
+
+Decision: **HOLD**. No production deployment, merge, release publication or service purchase.
+
+## Resumed certification results
+
+- PASS: authenticated live notification retrieval through this adapter and the existing Mattlk13 GitHub CLI session. API snapshot counted 5000 unread entries; this is a best-effort API snapshot, not a guarantee of historical completeness. No token value was extracted or printed.
+- PASS: live subscribe operation on a notification for nexus_hybrid_devtools draft PR #1, followed by restoration of the exact previous subscribed/ignored state and API readback. No notification was marked read during acceptance.
+- PASS: 12 Python tests cover read/write schemas, identity, repository scope, duplicate mark-read, failure readback, authentication/permission/timeout failures and subscription rollback after an ambiguous write timeout.
+- Implemented engine methods: manage_notification_thread and rollback_notification_subscription. Mark-read has no documented inverse and explicitly returns rollback_supported=False. Subscription operations preserve a restore receipt. No bulk notification mutation is performed.
+- OPEN SECURITY BLOCKER: the semantic-release lockfile still has the previously documented unpatched braces advisory. Security gate remains enabled; no bypass or false certification.
+- Current-head CI remains required; hosted jobs are queued.
+
+## Earlier evidence (historical)
+
 # NEXUS certification evidence — 2026-10-16
 
 Decision: **HOLD**. Draft PR #1; no merge, production deployment, service purchase, or publication authorized by this evidence.
