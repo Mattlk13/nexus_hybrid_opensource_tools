@@ -1,0 +1,33 @@
+name: NEXUS regression tests
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - fix/no-fabricated-success-20261016
+permissions:
+  contents: read
+concurrency:
+  group: regression-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned release preview and audit dependencies
+        run: python -m pip install -r requirements-release.txt
+      - name: Run regression and real isolated semantic-release tests
+        run: python -m unittest discover -v -p 'test_*.py'
+      - name: Dependency security gate (no suppressions)
+        if: ${{ !cancelled() }}
+        run: python -m pip_audit --format json --output release-audit.json
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: release-security-evidence
+          path: release-audit.json
