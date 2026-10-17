@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
+import tempfile
 from urllib import request, error
 
 class AdapterError(RuntimeError):
@@ -56,14 +58,32 @@ def release_preview(repo):
     if repo!=expected or not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',repo):
         raise AdapterError('repository_not_allowed')
     path=Path(root).resolve()
-    runner=path/'node_modules'/'semantic-release'/'bin'/'semantic-release.js'
-    if not (path/'.git').exists() or not runner.is_file(): raise AdapterError('release_dependencies_missing')
+    if not (path/'.git').exists(): raise AdapterError('release_checkout_missing')
+    # Do not inherit service tokens or load checkout Python modules.
+    env={k:os.environ[k] for k in ('PATH','HOME','SystemRoot','TEMP','TMP','LANG') if k in os.environ}
+    def state():
+        try:
+            return tuple(subprocess.check_output(['git',*args],cwd=path,env=env,stderr=subprocess.DEVNULL,timeout=15)
+                         for args in (['rev-parse','HEAD'],['show-ref','--head'],['status','--porcelain=v1','--untracked-files=all']))
+        except (OSError,subprocess.SubprocessError) as exc:
+            raise AdapterError('release_state_unavailable') from exc
+    before=state()
+    if before[2].strip(): raise AdapterError('release_checkout_dirty')
     try:
-        result=subprocess.run(['node',str(runner),'--dry-run','--no-ci'],cwd=path,
-            stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=90,check=False)
+        # Fixed config avoids project build/publish hooks. Only compute a version.
+        with tempfile.TemporaryDirectory(prefix='nexus-release-preview-') as temp:
+            config=Path(temp)/'pyproject.toml'
+            config.write_text('[tool.semantic_release]\n',encoding='utf-8')
+            result=subprocess.run([sys.executable,'-I','-m','semantic_release','--noop','--config',str(config),'version','--print'],
+                cwd=path,env=env,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,timeout=90,check=False)
     except subprocess.TimeoutExpired as exc: raise AdapterError('release_timeout') from exc
     except OSError as exc: raise AdapterError('release_runner_failed') from exc
+    if state()!=before: raise AdapterError('release_state_changed')
     if result.returncode: raise AdapterError('release_preview_failed')
+    version=result.stdout.strip()
+    if not re.fullmatch(r'(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?',version):
+        raise AdapterError('release_version_unverified')
     return {'success':True,'repo':repo,'mode':'dry_run','published':False,
-            'version_released':None,'changelog_generated':False,
-            'evidence':'semantic-release dry-run exited zero; no publication verified'}
+            'next_version':version,'version_released':None,'changelog_generated':False,
+            'backend':'python-semantic-release','git_state_unchanged':True,
+            'evidence':'no-op version preview; HEAD, refs and worktree readback unchanged'}

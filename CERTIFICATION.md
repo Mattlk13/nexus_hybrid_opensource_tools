@@ -2,6 +2,16 @@
 
 Decision: **HOLD**. No production deployment, merge, release publication or service purchase.
 
+## Latest verification — 2026-10-17 UTC
+
+- REMEDIATED in this branch: removed the vulnerable Node semantic-release 25.0.9 dependency graph, including braces. Replaced it with pinned Python Semantic Release 10.7.0 for non-publishing version previews. This is a backend change: Node release plugins/configuration are no longer executed or supported by this adapter.
+- PASS locally: all 15 Python tests, including real conventional feature/patch/breaking version calculations (1.1.0, 1.1.1, 2.0.0), repeat preview, dirty-checkout rejection, timeout and changed-state rejection. Local HEAD/refs/worktree are read back; isolated bare-remote refs remain unchanged.
+- PASS locally: pip-audit 2.10.1 reports no known vulnerabilities across the pinned replacement environment, including upgraded pip 26.2.1. Raw evidence: verification/release-audit-20261017.json. No suppressions. Advisory state can change; CI audits again.
+- Preview uses the current Python interpreter with isolated imports, a fixed temporary configuration, --noop and version --print. Service credentials are not forwarded. Publication remains disabled; next_version is a preview, version_released stays null.
+- Current-head GitHub Actions must pass before this change is certified. Historical failures below are retained as history, not current results.
+
+Install with `python -m pip install -r requirements-release.txt`; run `python -m unittest discover -v -p 'test_*.py'` and `python -m pip_audit`.
+
 ## Resumed certification results
 
 - PASS: authenticated live notification retrieval through this adapter and the existing Mattlk13 GitHub CLI session. API snapshot counted 5000 unread entries; this is a best-effort API snapshot, not a guarantee of historical completeness. No token value was extracted or printed.
